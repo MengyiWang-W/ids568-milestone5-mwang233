@@ -1,0 +1,93 @@
+# Governance Memo
+
+## 1. Privacy Considerations
+
+This system introduces data retention through caching.
+
+### Risk
+
+User prompts and model outputs may contain:
+- personal data
+- sensitive content
+
+Caching extends data lifetime beyond a single request.
+
+### Current Controls
+
+- cache keys use SHA-256 hashing (no raw prompt in keys)
+- deterministic-only caching (temperature = 0)
+- minimal parameters used in key construction
+
+### Limitation
+
+- responses are stored in plaintext
+- hashing protects keys, not cached content
+
+---
+
+## 2. Data Retention Policy
+
+Mechanisms:
+- TTL expiration
+- bounded cache size (LRU)
+
+Configuration:
+- TTL: 30 seconds
+- max entries: 1000
+
+### Assessment
+
+- short TTL reduces long-term exposure
+- LRU prevents unbounded growth
+
+---
+
+## 3. Misuse Scenarios
+
+1. harmful content reuse  
+2. request flooding (no rate limiting)  
+3. sensitive prompt exposure  
+
+---
+
+## 4. Mitigation Strategies
+
+Current:
+- TTL-based expiration
+- LRU eviction
+- deterministic caching
+
+Recommended:
+- rate limiting
+- authentication
+- content moderation
+- selective cache bypass
+- deletion API
+
+---
+
+## 5. Compliance Implications
+
+Aligned with:
+
+- data minimization (no identifiers in keys)
+- limited retention (TTL)
+- purpose limitation (performance optimization)
+
+Gaps:
+- no user deletion mechanism
+- no audit logging
+- no data residency control
+
+---
+
+## 6. Conclusion
+
+The system balances:
+
+- performance (batching + caching)
+- privacy (hashing + TTL)
+
+However:
+
+additional controls are required for production deployment.
