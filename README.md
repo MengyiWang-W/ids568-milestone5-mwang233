@@ -1,26 +1,33 @@
-##  LLM Inference Server with Batching and Caching
+## LLM Inference Server with Batching and Caching
 
 This project implements a high-throughput LLM inference service using FastAPI, enhanced with dynamic batching and response caching.
 
 The system is designed to simulate production-style LLM serving and evaluate performance trade-offs between latency, throughput, and cache effectiveness.
 
+---
+
 ## 1. Features
-Baseline inference (no batching, no caching)
-Dynamic batching (queue + timeout)
-LRU caching with TTL
-Cache-aware request handling
-Benchmarking under different concurrency levels
-Metrics tracking (latency, throughput, cache hit rate)
+
+* Baseline inference (no batching, no caching)
+* Dynamic batching (queue + timeout)
+* LRU caching with TTL
+* Cache-aware request handling
+* Benchmarking under different concurrency levels
+* Metrics tracking (latency, throughput, cache hit rate)
+
+---
 
 ## 2. System Architecture
-Baseline Pipeline
+
+### Baseline Pipeline
 
 Request → Model → Response
 
-Each request processed independently
-No batching
-No caching
-Optimized Pipeline
+* Each request processed independently
+* No batching
+* No caching
+
+### Optimized Pipeline
 
 Request → Cache Lookup
 ↓
@@ -28,20 +35,27 @@ Request → Cache Lookup
 ↓
 (miss) → Batch Queue → Model → Cache Write → Response
 
-Key components:
+**Key components:**
 
-Dynamic batching (group requests for efficiency)
-Cache lookup before inference
-Cache write-back after inference
+* Dynamic batching (group requests for efficiency)
+* Cache lookup before inference
+* Cache write-back after inference
+
+---
 
 ## 3. Installation
-Prerequisites
-Python 3.10+
-pip
-(Optional) Redis for distributed caching
-Install dependencies
+
+### Prerequisites
+
+* Python 3.10+
+* pip
+* (Optional) Redis for distributed caching
+
+### Install dependencies
 
 pip install -r requirements.txt
+
+---
 
 ## 4. Configuration
 
@@ -49,56 +63,71 @@ Copy environment template:
 
 cp .env.example .env
 
-Key parameters:
+⚠️ IMPORTANT: You must copy the environment file before running the server.
 
-LLM_MAX_BATCH_SIZE
-LLM_BATCH_TIMEOUT_MS
-LLM_CACHE_TTL_SECONDS
-LLM_CACHE_MAX_ENTRIES
+All batching and caching parameters are configurable via this file:
+
+* LLM_MAX_BATCH_SIZE
+* LLM_BATCH_TIMEOUT_MS
+* LLM_CACHE_TTL_SECONDS
+* LLM_CACHE_MAX_ENTRIES
+
+---
 
 ## 5. Running the Server
-Development mode
+
+### Development mode
 
 uvicorn src.server --reload
 
-Production-style mode
+### Production-style mode
 
 uvicorn src.server --host 0.0.0.0 --port 8000
 
+---
+
 ## 6. API Endpoints
-Baseline
+
+### Baseline
 
 POST /generate_baseline
 
-No batching
-No caching
-Optimized
+* No batching
+* No caching
+
+### Optimized
 
 POST /generate
 
-Cache lookup
-Batch execution on miss
-Cache write-back
-Health Check
+* Cache lookup
+* Batch execution on miss
+* Cache write-back
+
+### Health Check
 
 GET /health
 
-Metrics
+### Metrics
 
 GET /metrics
 
+---
+
 ## 7. Example Usage
-Optimized request
 
-curl -X POST http://127.0.0.1:8000/generate
--H "Content-Type: application/json"
--d "{"prompt":"Explain AI","max_tokens":128,"temperature":0.0}"
+### Optimized request
 
-Baseline request
+curl -X POST http://127.0.0.1:8000/generate 
+-H "Content-Type: application/json" 
+-d '{"prompt":"Explain AI","max_tokens":128,"temperature":0.0}'
 
-curl -X POST http://127.0.0.1:8000/generate_baseline
--H "Content-Type: application/json"
--d "{"prompt":"Explain AI","max_tokens":128,"temperature":0.0}"
+### Baseline request
+
+curl -X POST http://127.0.0.1:8000/generate_baseline 
+-H "Content-Type: application/json" 
+-d '{"prompt":"Explain AI","max_tokens":128,"temperature":0.0}'
+
+---
 
 ## 8. Running Benchmarks
 
@@ -106,175 +135,219 @@ From project root:
 
 python -m benchmarks.run_benchmarks
 
-Optional arguments:
+### Optional arguments
 
-python -m benchmarks.run_benchmarks
---base-url http://127.0.0.1:8000
+python -m benchmarks.run_benchmarks 
+--base-url http://127.0.0.1:8000 
 --num-requests 50
---low-concurrency 10
---medium-concurrency 50
---high-concurrency 100
 
-# 8.1 Benchmark Methodology (IMPORTANT)
+---
+
+## 8.1 Benchmark Methodology (IMPORTANT)
 
 To ensure reproducibility and fair comparison:
 
-Warm-up phase: 5 requests (excluded from metrics)
-Measurement phase: 50 requests per test
-Concurrency levels:
-Low: 10 concurrent requests
-Medium: 50 concurrent requests
-High: 100 concurrent requests
+* Warm-up phase: 5 requests (excluded)
+* Measurement phase: 50 requests per test
+* Concurrency levels:
 
-Cache evaluation:
+  * Low: 10
+  * Medium: 50
+  * High: 100
 
-Cold cache: cache cleared before measurement
-Warm cache: repeated prompts used to ensure cache hits
+### Cache evaluation
 
-Metrics collected:
+* Cold cache: cache cleared before measurement
+* Warm cache: repeated prompts to ensure cache hits
 
-Average latency (ms)
-P50 / P95 latency (ms)
-Throughput (requests/sec)
-Cache hit rate
+### Metrics collected
 
-This ensures consistent and reproducible performance measurements.
+* Average latency (ms)
+* P50 / P95 latency (ms)
+* Throughput (requests/sec)
+* Cache hit rate
+
+---
 
 ## 9. Benchmark Results
 
-Latest measured results:
+### Baseline
 
-Baseline
-Avg latency: 94.71 ms
-Throughput: 10.56 req/s
-Cache hit rate: 0.0
-Low Concurrency
-Avg latency: 36.92 ms
-Throughput: 131.19 req/s
-Cache hit rate: 0.9
-Medium Concurrency
-Avg latency: 34.54 ms
-Throughput: 263.97 req/s
-Cache hit rate: 1.0
-High Concurrency
-Avg latency: 59.55 ms
-Throughput: 262.50 req/s
-Cache hit rate: 1.0
-Cache Performance
-Cold latency: 203.62 ms
-Warm latency: 13.25 ms
-Speedup: ~15.37×
-Cold hit rate: 0.0
-Warm hit rate: 1.0
-Key Observations
-Throughput improves significantly (~25× increase from baseline to medium)
-Latency decreases under batching at low and medium concurrency
-Throughput plateaus at high concurrency, indicating system saturation
-Cache dramatically reduces latency (~15× speedup)
-System exhibits non-linear scaling behavior
+* Avg latency: 94.71 ms
+* Throughput: 10.56 req/s
+* Cache hit rate: 0.0
+
+### Low Concurrency
+
+* Avg latency: 36.92 ms
+* Throughput: 131.19 req/s
+* Cache hit rate: 0.9
+
+### Medium Concurrency
+
+* Avg latency: 34.54 ms
+* Throughput: 263.97 req/s
+* Cache hit rate: 1.0
+
+### High Concurrency
+
+* Avg latency: 59.55 ms
+* Throughput: 262.50 req/s
+* Cache hit rate: 1.0
+
+### Cache Performance
+
+* Cold latency: 203.62 ms
+* Warm latency: 13.25 ms
+* Speedup: ~15.37×
+* Cold hit rate: 0.0
+* Warm hit rate: 1.0
+
+### Key Observations
+
+* Throughput improves significantly (~25×)
+* Latency decreases under batching (low/medium)
+* Throughput plateaus at high concurrency → system saturation
+* Caching reduces latency dramatically (~15×)
+* System shows non-linear scaling
+
+---
 
 ## 10. Design Decisions
-Batching
-Improves throughput by amortizing model cost
-Multiple requests share a single forward pass (compute reuse)
-Introduces queue delay under high load
-Caching
-Eliminates redundant computation entirely
-Only applied to deterministic requests (temperature = 0.0)
-Returns responses in constant time (O(1))
 
-# 10.1 Trade-off Analysis (CRITICAL)
+### Batching
 
-Batching trade-off:
+* Shares model compute across requests
+* Improves throughput
+* Introduces queue delay
 
-Larger batch size → higher throughput
-But longer waiting time → increased latency
+### Caching
 
-Caching trade-off:
+* Eliminates redundant computation
+* Only for deterministic requests (temperature = 0.0)
+* O(1) response time
 
-Larger cache → higher hit rate
-But increased memory usage
+---
 
-System behavior:
+## 10.1 Trade-off Analysis (CRITICAL)
 
-Medium concurrency achieves optimal balance
-High concurrency leads to saturation (queue delay dominates)
+### Batching
 
-# 10.2 Why Performance Improves (Compute Pathway Explanation)
+* Larger batch → higher throughput
+* But → increased latency
 
-Baseline:
+### Caching
 
-Each request triggers a full model execution
+* Larger cache → higher hit rate
+* But → more memory usage
 
-Batching:
+### System behavior
 
-Multiple requests share a single forward pass
-Reduces per-request compute overhead
+* Medium concurrency = optimal
+* High concurrency = saturation
 
-Caching:
+---
+
+## 10.2 Why Performance Improves
+
+### Baseline
+
+Each request triggers full model execution
+
+### Batching
+
+Multiple requests share a forward pass
+
+### Caching
 
 Repeated requests bypass model entirely
-Eliminates computation and reduces latency dramatically
+
+---
 
 ## 11. Reproducibility
 
-This repository includes:
+This repository is fully reproducible:
 
-Benchmark script (benchmarks/run_benchmarks.py)
-Raw results (benchmarks/results/results.json)
-Environment configuration (.env.example)
-Modular code structure
-
-# 11.1 Quick Reproduction (Under 5 Minutes)
-Install dependencies:
+### Step 1: Install
 
 pip install -r requirements.txt
 
-Start server:
+### Step 2: Configure
+
+cp .env.example .env
+
+### Step 3: Run server
 
 uvicorn src.server --host 127.0.0.1 --port 8000
 
-Run benchmarks:
+### Step 4: Run benchmarks
 
 python -m benchmarks.run_benchmarks
 
-(Optional) Generate charts:
+### Step 5: Generate charts
 
 python analysis/visualizations/generate_charts.py
 
+---
+
+### Benchmark Guarantees
+
+* Warm-up excluded
+* Fixed request counts
+* Controlled concurrency
+* Cold vs warm cache separated
+* Deterministic caching
+
+Results stored in:
+benchmarks/results/results.json
+
+---
+
+## 11.2 Resource Usage Note
+
+* CPU-based mock LLM used
+* No GPU required
+* Memory bounded by cache size
+* Ensures reproducibility across environments
+
+---
+
 ## 12. Governance Considerations
 
-This system includes:
+### Implemented
 
-SHA-256 hashed cache keys (no plaintext identifiers)
-TTL-based expiration
-Bounded cache size
-Deterministic-only caching
+* SHA-256 hashed cache keys (no PII)
+* TTL expiration
+* Bounded cache size
+* Deterministic-only caching
 
-Risks:
+### Risks
 
-Cached responses may contain sensitive content
-No rate limiting or access control
+* Cached responses may contain sensitive content
+* No rate limiting / auth
 
-Future improvements:
+### Future improvements
 
-Rate limiting
-Authentication
-Cache invalidation APIs
-Input/output moderation
+* Rate limiting
+* Authentication
+* Cache invalidation APIs
+* Input/output moderation
 
-##  13. Limitations
-Performance depends on workload characteristics
-Cache effectiveness depends on repetition
-System saturates under high concurrency
-No distributed scaling implemented
+---
+
+## 13. Limitations
+
+* Performance depends on workload
+* Cache depends on repetition
+* Saturation at high concurrency
+* No distributed scaling
+
+---
 
 ## 14. Conclusion
 
-This project demonstrates:
+* Batching improves throughput (~25×)
+* Caching reduces latency (~15×)
+* System shows realistic scaling behavior
 
-Dynamic batching significantly improves throughput (~25×)
-Caching reduces latency dramatically (~15×)
-The system exhibits realistic saturation behavior
-
-LLM serving systems require balancing latency, throughput, and cache effectiveness, and must be tuned based on workload patterns.
+LLM systems must balance latency, throughput, and cache effectiveness.
